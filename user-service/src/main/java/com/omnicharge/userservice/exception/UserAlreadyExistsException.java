@@ -1,4 +1,7 @@
 package com.omnicharge.userservice.exception;
 
-public class UserAlreadyExistsException {
+public class UserAlreadyExistsException extends RuntimeException {
+    public UserAlreadyExistsException(String msg) {
+        super(msg);
+    }
 }

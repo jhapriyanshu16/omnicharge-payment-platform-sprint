@@ -38,8 +38,7 @@ public class OperatorController {
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<OperatorResponse> getById(@PathVariable Long id){
-
+    public ApiResponse<OperatorResponse> getById(@PathVariable("id") Long id) {
         return ApiResponse.<OperatorResponse>builder()
                 .success(true)
                 .message("Operator found")
@@ -48,10 +47,8 @@ public class OperatorController {
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<?> delete(@PathVariable Long id){
-
+    public ApiResponse<?> delete(@PathVariable("id") Long id) {
         service.delete(id);
-
         return ApiResponse.builder()
                 .success(true)
                 .message("Operator deleted")

@@ -44,6 +44,7 @@
         <module>config-server</module>
         <module>discovery-server</module>
         <module>user-service</module>
+        <module>operator-service</module>
     </modules>
 
     <build>

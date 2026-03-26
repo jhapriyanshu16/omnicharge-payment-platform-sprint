@@ -56,6 +56,14 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                     return exchange.getResponse().setComplete();
                 }
             }
+            if (path.contains("/plans")
+                    && (method == HttpMethod.POST || method == HttpMethod.DELETE)) {
+
+                if (!"ROLE_ADMIN".equals(role)) {
+                    exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
+                    return exchange.getResponse().setComplete();
+                }
+            }
 
             // Propagate identity headers
             ServerHttpRequest request = exchange.getRequest()

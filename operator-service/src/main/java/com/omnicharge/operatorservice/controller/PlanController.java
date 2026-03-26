@@ -28,7 +28,7 @@ public class PlanController {
     }
 
     @GetMapping("/operator/{operatorId}")
-    public ApiResponse<List<PlanResponse>> getByOperator(@PathVariable Long operatorId){
+    public ApiResponse<List<PlanResponse>> getByOperator(@PathVariable("operatorId") Long operatorId){
 
         return ApiResponse.<List<PlanResponse>>builder()
                 .success(true)
@@ -38,7 +38,7 @@ public class PlanController {
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<PlanResponse> getById(@PathVariable Long id){
+    public ApiResponse<PlanResponse> getById(@PathVariable("id") Long id){
 
         return ApiResponse.<PlanResponse>builder()
                 .success(true)
@@ -48,7 +48,7 @@ public class PlanController {
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<?> delete(@PathVariable Long id){
+    public ApiResponse<?> delete(@PathVariable("id") Long id){
 
         service.delete(id);
 

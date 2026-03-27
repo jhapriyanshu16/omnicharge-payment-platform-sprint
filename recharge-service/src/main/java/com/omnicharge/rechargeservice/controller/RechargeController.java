@@ -3,6 +3,7 @@ package com.omnicharge.rechargeservice.controller;
 import com.omnicharge.rechargeservice.dto.request.RechargeRequest;
 import com.omnicharge.rechargeservice.dto.response.ApiResponse;
 import com.omnicharge.rechargeservice.dto.response.RechargeResponse;
+import com.omnicharge.rechargeservice.entity.RechargeStatus;
 import com.omnicharge.rechargeservice.service.RechargeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,15 +18,27 @@ public class RechargeController {
 
     private final RechargeService service;
 
+
     @PostMapping
     public ApiResponse<RechargeResponse> create(
             @RequestHeader("X-User-Email") String userEmail,
             @Valid @RequestBody RechargeRequest request){
         log.info("User Email from header: {}", userEmail);
+
+        RechargeResponse response = service.createRecharge(userEmail, request);
+
+        String message;
+
+        switch (response.getStatus()) {
+            case SUCCESS -> message = "Recharge successful";
+            case FAILED -> message = "Recharge failed";
+            default -> message = "Recharge initiated";
+        }
+
         return ApiResponse.<RechargeResponse>builder()
-                .success(true)
-                .message("Recharge initiated")
-                .data(service.createRecharge(userEmail, request))
+                .success(response.getStatus() != RechargeStatus.FAILED)
+                .message(message)
+                .data(response)
                 .build();
     }
 

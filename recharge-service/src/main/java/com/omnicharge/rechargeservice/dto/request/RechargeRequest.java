@@ -21,7 +21,4 @@ public class RechargeRequest {
     @Positive(message = "Plan ID must be a valid positive number")
     private Long planId;
 
-//    @NotNull(message = "Amount is required")
-//    @Positive(message = "Amount must be greater than zero")
-//    private Double amount;
 }

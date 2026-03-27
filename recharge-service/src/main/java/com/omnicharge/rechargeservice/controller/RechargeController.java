@@ -30,7 +30,7 @@ public class RechargeController {
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<RechargeResponse> get(@PathVariable Long id){
+    public ApiResponse<RechargeResponse> get(@PathVariable("id") Long id){
 
         return ApiResponse.<RechargeResponse>builder()
                 .success(true)

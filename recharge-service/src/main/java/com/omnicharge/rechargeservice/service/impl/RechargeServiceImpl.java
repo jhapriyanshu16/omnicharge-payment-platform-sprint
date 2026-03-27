@@ -1,10 +1,10 @@
 package com.omnicharge.rechargeservice.service.impl;
 
 import com.omnicharge.rechargeservice.client.OperatorClient;
+import com.omnicharge.rechargeservice.client.PaymentClient;
+import com.omnicharge.rechargeservice.dto.request.CreatePaymentRequest;
 import com.omnicharge.rechargeservice.dto.request.RechargeRequest;
-import com.omnicharge.rechargeservice.dto.response.ApiResponse;
-import com.omnicharge.rechargeservice.dto.response.PlanResponse;
-import com.omnicharge.rechargeservice.dto.response.RechargeResponse;
+import com.omnicharge.rechargeservice.dto.response.*;
 import com.omnicharge.rechargeservice.entity.Recharge;
 import com.omnicharge.rechargeservice.entity.RechargeStatus;
 import com.omnicharge.rechargeservice.exception.PlanNotFoundException;
@@ -25,6 +25,7 @@ public class RechargeServiceImpl implements RechargeService {
 
     private final RechargeRepository repository;
     private final OperatorClient operatorClient;
+    private final PaymentClient paymentClient;
 
     @Override
     @CircuitBreaker(name = "operatorService", fallbackMethod = "fallbackPlan")
@@ -43,10 +44,9 @@ public class RechargeServiceImpl implements RechargeService {
 
         PlanResponse plan = response.getData();
 
-        if(!plan.getOperatorId().equals(request.getOperatorId())){
+        if (!plan.getOperatorId().equals(request.getOperatorId())) {
             throw new RuntimeException("Plan does not belong to operator");
         }
-
 
         Recharge recharge = Recharge.builder()
                 .userEmail(userEmail)
@@ -62,12 +62,41 @@ public class RechargeServiceImpl implements RechargeService {
         log.info("Recharge created | id={} | user={} | amount={}",
                 saved.getId(), userEmail, saved.getAmount());
 
+        try {
+
+            log.info("Calling payment-service for rechargeId {}", saved.getId());
+
+            CreatePaymentRequest paymentRequest = CreatePaymentRequest.builder()
+                    .rechargeId(saved.getId())
+                    .amount(plan.getPrice())
+                    .build();
+
+            ApiResponse<PaymentResponse> paymentResponse =
+                    paymentClient.createPayment(paymentRequest);
+
+            PaymentResponse payment = paymentResponse.getData();
+
+            if (payment != null && "SUCCESS".equalsIgnoreCase(payment.getStatus())) {
+                saved.setStatus(RechargeStatus.SUCCESS);
+            } else {
+                saved.setStatus(RechargeStatus.FAILED);
+            }
+
+        } catch (Exception ex) {
+
+            log.error("Payment service failed for rechargeId {}", saved.getId(), ex);
+
+            saved.setStatus(RechargeStatus.FAILED);
+        }
+
+        repository.save(saved);
+
         return map(saved);
     }
 
-    public RechargeResponse fallbackPlan(String userEmail, RechargeRequest request, Throwable ex){
+    public RechargeResponse fallbackPlan(String userEmail, RechargeRequest request, Throwable ex) {
 
-        log.error("Operator service is down! Fallback triggered");
+        log.error("Operator service is down! Fallback triggered", ex);
 
         Recharge recharge = Recharge.builder()
                 .userEmail(userEmail)
@@ -94,7 +123,7 @@ public class RechargeServiceImpl implements RechargeService {
         return map(recharge);
     }
 
-    private RechargeResponse map(Recharge r){
+    private RechargeResponse map(Recharge r) {
 
         return RechargeResponse.builder()
                 .rechargeId(r.getId())

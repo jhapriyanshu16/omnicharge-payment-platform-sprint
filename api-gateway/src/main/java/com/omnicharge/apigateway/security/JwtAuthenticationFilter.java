@@ -2,6 +2,7 @@ package com.omnicharge.apigateway.security;
 
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
@@ -14,6 +15,7 @@ import reactor.core.publisher.Mono;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private final JwtUtil jwtUtil;
@@ -23,7 +25,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                              org.springframework.cloud.gateway.filter.GatewayFilterChain chain) {
 
         String path = exchange.getRequest().getURI().getPath();
-
+        log.info("Incoming request path: {}", path);
         // Allow public auth routes
         if (path.contains("/auth/")) {
             return chain.filter(exchange);
@@ -43,6 +45,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             Claims claims = jwtUtil.validate(token);
 
             String email = claims.getSubject();
+            log.info("JWT validated for user: {}", email);
             String role = claims.get("role", String.class);
 
             HttpMethod method = exchange.getRequest().getMethod();

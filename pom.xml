@@ -45,6 +45,7 @@
         <module>discovery-server</module>
         <module>user-service</module>
         <module>operator-service</module>
+        <module>recharge-service</module>
     </modules>
 
     <build>

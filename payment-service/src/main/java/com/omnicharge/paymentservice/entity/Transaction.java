@@ -26,8 +26,8 @@ public class Transaction {
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
 
-    private String razorpayOrderId;
-    private String razorpayPaymentId;
+    private String stripePaymentIntentId;
+    private String stripePaymentId;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

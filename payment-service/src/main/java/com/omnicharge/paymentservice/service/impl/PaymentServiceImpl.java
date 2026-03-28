@@ -7,6 +7,8 @@ import com.omnicharge.paymentservice.entity.Transaction;
 import com.omnicharge.paymentservice.exception.PaymentNotFoundException;
 import com.omnicharge.paymentservice.repository.TransactionRepository;
 import com.omnicharge.paymentservice.service.PaymentService;
+import com.stripe.model.PaymentIntent;
+import com.stripe.param.PaymentIntentCreateParams;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,19 +23,54 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public PaymentResponse createPayment(CreatePaymentRequest request) {
 
-        log.info("Creating payment for rechargeId {}", request.getRechargeId());
+        log.info("Creating Stripe payment intent for rechargeId {}", request.getRechargeId());
 
-        Transaction txn = Transaction.builder()
-                .rechargeId(request.getRechargeId())
-                .amount(request.getAmount())
-                .status(PaymentStatus.PENDING)
-                .build();
+        try {
 
-        Transaction saved = repository.save(txn);
+            PaymentIntentCreateParams params =
+                    PaymentIntentCreateParams.builder()
+                            .setAmount((long) (request.getAmount() * 100))
+                            .setCurrency("inr")
+                            .build();
 
-        log.info("Payment created with transactionId {}", saved.getId());
+            PaymentIntent intent = PaymentIntent.create(params);
 
-        return map(saved);
+            Transaction txn = Transaction.builder()
+                    .rechargeId(request.getRechargeId())
+                    .amount(request.getAmount())
+                    .status(PaymentStatus.PENDING)
+                    .stripePaymentIntentId(intent.getId())
+                    .build();
+
+            Transaction saved = repository.save(txn);
+
+            log.info("Stripe PaymentIntent created | txnId={} | intentId={}",
+                    saved.getId(), intent.getId());
+
+            return map(saved);
+
+        } catch (Exception ex) {
+
+            log.error("Stripe payment creation failed for rechargeId {}", request.getRechargeId(), ex);
+
+            throw new RuntimeException("Payment initialization failed");
+        }
+    }
+
+    @Override
+    public PaymentResponse verifyPayment(Long id) {
+
+        Transaction txn = repository.findById(id)
+                .orElseThrow(() -> new PaymentNotFoundException("Transaction not found"));
+
+        txn.setStatus(PaymentStatus.SUCCESS);
+
+        repository.save(txn);
+
+        log.info("Payment SUCCESS | txnId={} | stripeIntent={}",
+                txn.getId(), txn.getStripePaymentIntentId());
+
+        return map(txn);
     }
 
     @Override
@@ -52,7 +89,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .rechargeId(t.getRechargeId())
                 .amount(t.getAmount())
                 .status(t.getStatus())
-                .razorpayOrderId(t.getRazorpayOrderId())
+                .stripePaymentIntentId(t.getStripePaymentIntentId())
                 .createdAt(t.getCreatedAt())
                 .build();
     }

@@ -15,6 +15,6 @@ public class PaymentResponse {
     private Long rechargeId;
     private Double amount;
     private PaymentStatus status;
-    private String razorpayOrderId;
+    private String stripePaymentIntentId;
     private LocalDateTime createdAt;
 }

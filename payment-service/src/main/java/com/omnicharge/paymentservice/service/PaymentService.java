@@ -8,4 +8,6 @@ public interface PaymentService {
     PaymentResponse createPayment(CreatePaymentRequest request);
 
     PaymentResponse getById(Long id);
+
+    PaymentResponse verifyPayment(Long id);
 }

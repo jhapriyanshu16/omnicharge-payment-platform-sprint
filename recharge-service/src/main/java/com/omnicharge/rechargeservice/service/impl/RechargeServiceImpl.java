@@ -76,10 +76,12 @@ public class RechargeServiceImpl implements RechargeService {
 
             PaymentResponse payment = paymentResponse.getData();
 
-            if (payment != null && "SUCCESS".equalsIgnoreCase(payment.getStatus())) {
-                saved.setStatus(RechargeStatus.SUCCESS);
-            } else {
-                saved.setStatus(RechargeStatus.FAILED);
+            if (payment != null) {
+                if ("SUCCESS".equalsIgnoreCase(payment.getStatus())) {
+                    saved.setStatus(RechargeStatus.SUCCESS);
+                } else {
+                    saved.setStatus(RechargeStatus.PENDING);
+                }
             }
 
         } catch (Exception ex) {
@@ -134,5 +136,22 @@ public class RechargeServiceImpl implements RechargeService {
                 .status(r.getStatus())
                 .createdAt(r.getCreatedAt())
                 .build();
+    }
+
+    @Override
+    public void updateStatus(Long id, String status) {
+        log.info("Attempting to update recharge id={} to status={}", id, status);
+
+        Recharge recharge = repository.findById(id)
+                .orElseThrow(() -> new RechargeNotFoundException("Recharge not found for id: " + id));
+
+        try {
+            recharge.setStatus(RechargeStatus.valueOf(status.trim().toUpperCase()));
+            repository.save(recharge);
+            log.info("Successfully updated recharge id={} to {}", id, status);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid status value provided: {}. Enum constant not found.", status);
+            throw new RuntimeException("Invalid status update requested: " + status);
+        }
     }
 }

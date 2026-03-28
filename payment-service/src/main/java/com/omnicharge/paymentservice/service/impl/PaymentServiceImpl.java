@@ -1,10 +1,12 @@
 package com.omnicharge.paymentservice.service.impl;
 
+import com.omnicharge.paymentservice.client.RechargeClient;
 import com.omnicharge.paymentservice.dto.request.CreatePaymentRequest;
 import com.omnicharge.paymentservice.dto.response.PaymentResponse;
 import com.omnicharge.paymentservice.entity.PaymentStatus;
 import com.omnicharge.paymentservice.entity.Transaction;
 import com.omnicharge.paymentservice.exception.PaymentNotFoundException;
+import com.omnicharge.paymentservice.messaging.PaymentEventPublisher;
 import com.omnicharge.paymentservice.repository.TransactionRepository;
 import com.omnicharge.paymentservice.service.PaymentService;
 import com.stripe.model.PaymentIntent;
@@ -19,6 +21,8 @@ import org.springframework.stereotype.Service;
 public class PaymentServiceImpl implements PaymentService {
 
     private final TransactionRepository repository;
+    private final RechargeClient rechargeClient;
+    private final PaymentEventPublisher paymentEventPublisher;
 
     @Override
     public PaymentResponse createPayment(CreatePaymentRequest request) {
@@ -64,11 +68,18 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElseThrow(() -> new PaymentNotFoundException("Transaction not found"));
 
         txn.setStatus(PaymentStatus.SUCCESS);
-
         repository.save(txn);
 
-        log.info("Payment SUCCESS | txnId={} | stripeIntent={}",
-                txn.getId(), txn.getStripePaymentIntentId());
+        log.info("Payment SUCCESS | txnId={} | rechargeId={}",
+                txn.getId(), txn.getRechargeId());
+
+        try {
+//            rechargeClient.updateStatus(txn.getRechargeId(), "SUCCESS");
+            log.info("Publishing payment success event for rechargeId: {}", txn.getRechargeId());
+            paymentEventPublisher.publishSuccess(txn.getRechargeId());
+        } catch (Exception ex) {
+            log.error("Failed to publish payment success event", ex);
+        }
 
         return map(txn);
     }

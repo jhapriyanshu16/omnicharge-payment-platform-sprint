@@ -1,7 +1,9 @@
 com/omnicharge/notification/service/impl/EmailServiceImpl.class
 com/omnicharge/notification/NotificationServiceApplication.class
+com/omnicharge/notification/consumer/MessageRetryHelper.class
 com/omnicharge/notification/dto/PaymentSuccessEvent$PaymentSuccessEventBuilder.class
 com/omnicharge/notification/dto/PaymentSuccessEvent.class
+com/omnicharge/notification/consumer/NotificationDlqConsumer.class
 com/omnicharge/notification/config/RabbitMQConfig.class
 com/omnicharge/notification/service/EmailService.class
 com/omnicharge/notification/consumer/PaymentSuccessEventConsumer.class

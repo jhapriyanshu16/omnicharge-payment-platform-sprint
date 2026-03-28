@@ -4,3 +4,5 @@
 /home/priyanshu/Desktop/omnicharge/omnicharge-payment-platform-sprint/notification-service/src/main/java/com/omnicharge/notification/service/impl/EmailServiceImpl.java
 /home/priyanshu/Desktop/omnicharge/omnicharge-payment-platform-sprint/notification-service/src/main/java/com/omnicharge/notification/service/EmailService.java
 /home/priyanshu/Desktop/omnicharge/omnicharge-payment-platform-sprint/notification-service/src/main/java/com/omnicharge/notification/config/RabbitMQConfig.java
+/home/priyanshu/Desktop/omnicharge/omnicharge-payment-platform-sprint/notification-service/src/main/java/com/omnicharge/notification/consumer/MessageRetryHelper.java
+/home/priyanshu/Desktop/omnicharge/omnicharge-payment-platform-sprint/notification-service/src/main/java/com/omnicharge/notification/consumer/NotificationDlqConsumer.java

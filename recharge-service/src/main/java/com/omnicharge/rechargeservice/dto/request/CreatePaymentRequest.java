@@ -10,4 +10,9 @@ public class CreatePaymentRequest {
 
     private Long rechargeId;
     private Double amount;
+    private String userEmail;
+    private String operatorName;
+    private String planName;
+    private String mobileNumber;
+    private String correlationId;
 }

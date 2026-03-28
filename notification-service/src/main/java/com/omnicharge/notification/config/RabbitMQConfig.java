@@ -1,4 +1,4 @@
-package com.omnicharge.rechargeservice.config;
+package com.omnicharge.notification.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.core.Binding;
@@ -17,11 +17,11 @@ public class RabbitMQConfig {
 
     public static final String PAYMENT_EXCHANGE = "payment.exchange";
     public static final String PAYMENT_SUCCESS_ROUTING_KEY = "payment.success";
-    public static final String PAYMENT_SUCCESS_RECHARGE_QUEUE = "payment.success.recharge.queue";
+    public static final String PAYMENT_SUCCESS_NOTIFICATION_QUEUE = "payment.success.notification.queue";
 
     @Bean
-    public Queue rechargePaymentSuccessQueue() {
-        return new Queue(PAYMENT_SUCCESS_RECHARGE_QUEUE, true);
+    public Queue notificationPaymentSuccessQueue() {
+        return new Queue(PAYMENT_SUCCESS_NOTIFICATION_QUEUE, true);
     }
 
     @Bean
@@ -30,8 +30,8 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Binding rechargeBinding(Queue rechargePaymentSuccessQueue, TopicExchange paymentExchange) {
-        return BindingBuilder.bind(rechargePaymentSuccessQueue)
+    public Binding notificationBinding(Queue notificationPaymentSuccessQueue, TopicExchange paymentExchange) {
+        return BindingBuilder.bind(notificationPaymentSuccessQueue)
                 .to(paymentExchange)
                 .with(PAYMENT_SUCCESS_ROUTING_KEY);
     }

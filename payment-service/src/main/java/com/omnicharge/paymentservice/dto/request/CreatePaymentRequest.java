@@ -13,4 +13,19 @@ public class CreatePaymentRequest {
     @NotNull
     @Positive
     private Double amount;
+
+    @NotNull
+    private String userEmail;
+
+    @NotNull
+    private String operatorName;
+
+    @NotNull
+    private String planName;
+
+    @NotNull
+    private String mobileNumber;
+
+    @NotNull
+    private String correlationId;
 }

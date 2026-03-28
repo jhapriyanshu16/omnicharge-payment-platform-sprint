@@ -1,5 +1,7 @@
 package com.omnicharge.rechargeservice.messaging;
 
+import com.omnicharge.rechargeservice.config.RabbitMQConfig;
+import com.omnicharge.rechargeservice.messaging.event.PaymentSuccessEvent;
 import com.omnicharge.rechargeservice.entity.RechargeStatus;
 import com.omnicharge.rechargeservice.repository.RechargeRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,16 +16,18 @@ public class PaymentEventListener {
 
     private final RechargeRepository repository;
 
-    @RabbitListener(queues = "payment.success.queue")
-    public void handlePaymentSuccess(Long rechargeId) {
+    @RabbitListener(queues = RabbitMQConfig.PAYMENT_SUCCESS_RECHARGE_QUEUE)
+    public void handlePaymentSuccess(PaymentSuccessEvent event) {
 
-        log.info("Received payment success event for rechargeId {}", rechargeId);
+        log.info("[correlationId={}] Received payment success event for rechargeId={}",
+                event.getCorrelationId(), event.getRechargeId());
 
-        repository.findById(rechargeId).ifPresent(recharge -> {
+        repository.findById(event.getRechargeId()).ifPresent(recharge -> {
             recharge.setStatus(RechargeStatus.SUCCESS);
             repository.save(recharge);
 
-            log.info("Recharge updated to SUCCESS for id={}", rechargeId);
+            log.info("[correlationId={}] Recharge updated to SUCCESS for id={}",
+                    event.getCorrelationId(), event.getRechargeId());
         });
     }
 }

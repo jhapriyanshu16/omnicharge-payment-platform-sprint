@@ -51,4 +51,11 @@ public class RechargeController {
                 .data(service.getById(id))
                 .build();
     }
+
+    @PutMapping("/{id}/status")
+    public void updateStatus(@PathVariable("id") Long id,
+                             @RequestParam("status") String status){
+
+        service.updateStatus(id, status);
+    }
 }

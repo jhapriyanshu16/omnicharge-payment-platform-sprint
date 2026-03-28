@@ -36,4 +36,14 @@ public class PaymentController {
                 .data(service.getById(id))
                 .build();
     }
+
+    @PostMapping("/verify/{id}")
+    public ApiResponse<PaymentResponse> verify(@PathVariable("id") Long id){
+
+        return ApiResponse.<PaymentResponse>builder()
+                .success(true)
+                .message("Payment successful")
+                .data(service.verifyPayment(id))
+                .build();
+    }
 }

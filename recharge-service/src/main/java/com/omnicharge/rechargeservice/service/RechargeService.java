@@ -8,4 +8,6 @@ public interface RechargeService {
     RechargeResponse createRecharge(String userEmail, RechargeRequest request);
 
     RechargeResponse getById(Long id);
+
+    void updateStatus(Long id, String status);
 }

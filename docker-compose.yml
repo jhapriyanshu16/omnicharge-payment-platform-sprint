@@ -31,9 +31,25 @@ services:
       - "15672:15672"
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
+      - ./docker/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    networks:
+      - omnicharge-network
+
+  zipkin:
+    image: openzipkin/zipkin:3
+    container_name: omnicharge-zipkin
+    restart: unless-stopped
+    ports:
+      - "9411:9411"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9411/health >/dev/null || exit 1"]
+      interval: 15s
       timeout: 5s
       retries: 20
       start_period: 20s
@@ -47,6 +63,11 @@ services:
     image: omnicharge/discovery-server:latest
     container_name: omnicharge-discovery-server
     restart: unless-stopped
+    depends_on:
+      zipkin:
+        condition: service_healthy
+    environment:
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
     ports:
       - "8761:8761"
     healthcheck:
@@ -68,8 +89,11 @@ services:
     depends_on:
       discovery-server:
         condition: service_healthy
+      zipkin:
+        condition: service_healthy
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
     ports:
       - "8888:8888"
     healthcheck:
@@ -93,10 +117,13 @@ services:
         condition: service_healthy
       config-server:
         condition: service_healthy
+      zipkin:
+        condition: service_healthy
     environment:
       CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
       JWT_SECRET: ${JWT_SECRET}
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
     ports:
       - "9090:9090"
     healthcheck:
@@ -122,6 +149,8 @@ services:
         condition: service_healthy
       config-server:
         condition: service_healthy
+      zipkin:
+        condition: service_healthy
     environment:
       CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
@@ -130,6 +159,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXP: ${JWT_EXP}
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
     ports:
       - "8081:8081"
     healthcheck:
@@ -155,12 +185,15 @@ services:
         condition: service_healthy
       config-server:
         condition: service_healthy
+      zipkin:
+        condition: service_healthy
     environment:
       CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/omnicharge_operator_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       MYSQL_USERNAME: ${MYSQL_USERNAME}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
     ports:
       - "8082:8082"
     healthcheck:
@@ -188,6 +221,8 @@ services:
         condition: service_healthy
       config-server:
         condition: service_healthy
+      zipkin:
+        condition: service_healthy
     environment:
       CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
@@ -198,6 +233,7 @@ services:
       SPRING_RABBITMQ_PORT: 5672
       RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
     ports:
       - "8083:8083"
     healthcheck:
@@ -225,6 +261,8 @@ services:
         condition: service_healthy
       config-server:
         condition: service_healthy
+      zipkin:
+        condition: service_healthy
     environment:
       CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
@@ -236,6 +274,7 @@ services:
       RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
     ports:
       - "8084:8084"
     healthcheck:
@@ -261,6 +300,8 @@ services:
         condition: service_healthy
       config-server:
         condition: service_healthy
+      zipkin:
+        condition: service_healthy
     environment:
       CONFIG_SERVER_URL: http://config-server:8888
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka/
@@ -270,6 +311,7 @@ services:
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       EMAIL_USERNAME: ${EMAIL_USERNAME}
       EMAIL_PASSWORD: ${EMAIL_PASSWORD}
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
     ports:
       - "8085:8085"
     healthcheck:
@@ -281,9 +323,75 @@ services:
     networks:
       - omnicharge-network
 
+  prometheus:
+    image: prom/prometheus:v2.53.1
+    container_name: omnicharge-prometheus
+    restart: unless-stopped
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      api-gateway:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      operator-service:
+        condition: service_healthy
+      recharge-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9091:9090"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    networks:
+      - omnicharge-network
+
+  grafana:
+    image: grafana/grafana:11.1.4
+    container_name: omnicharge-grafana
+    restart: unless-stopped
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    networks:
+      - omnicharge-network
+
 volumes:
   mysql-data:
   rabbitmq-data:
+  prometheus-data:
+  grafana-data:
 
 networks:
   omnicharge-network:

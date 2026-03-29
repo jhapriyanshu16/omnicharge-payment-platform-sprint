@@ -4,9 +4,8 @@ import com.omnicharge.rechargeservice.client.OperatorClient;
 import com.omnicharge.rechargeservice.client.PaymentClient;
 import com.omnicharge.rechargeservice.dto.request.CreatePaymentRequest;
 import com.omnicharge.rechargeservice.dto.request.RechargeRequest;
-import com.omnicharge.rechargeservice.dto.response.*;
-import com.omnicharge.rechargeservice.dto.request.RechargeRequest;
 import com.omnicharge.rechargeservice.dto.response.ApiResponse;
+import com.omnicharge.rechargeservice.dto.response.PaymentResponse;
 import com.omnicharge.rechargeservice.dto.response.PlanResponse;
 import com.omnicharge.rechargeservice.dto.response.RechargeResponse;
 import com.omnicharge.rechargeservice.entity.Recharge;
@@ -20,6 +19,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -35,9 +36,12 @@ public class RechargeServiceImpl implements RechargeService {
     @CircuitBreaker(name = "operatorService", fallbackMethod = "fallbackPlan")
     public RechargeResponse createRecharge(String userEmail, RechargeRequest request) {
 
-        log.info("Recharge request received from user {}", userEmail);
+        String correlationId = UUID.randomUUID().toString();
 
-        log.info("Fetching plan details from operator-service for planId {}", request.getPlanId());
+        log.info("[correlationId={}] Recharge request received from user {}", correlationId, userEmail);
+
+        log.info("[correlationId={}] Fetching plan details from operator-service for planId {}",
+                correlationId, request.getPlanId());
 
         ApiResponse<PlanResponse> response =
                 operatorClient.getPlanById(request.getPlanId());
@@ -63,16 +67,21 @@ public class RechargeServiceImpl implements RechargeService {
 
         Recharge saved = repository.save(recharge);
 
-        log.info("Recharge created | id={} | user={} | amount={}",
-                saved.getId(), userEmail, saved.getAmount());
+        log.info("[correlationId={}] Recharge created | id={} | user={} | amount={}",
+                correlationId, saved.getId(), userEmail, saved.getAmount());
 
         try {
 
-            log.info("Calling payment-service for rechargeId {}", saved.getId());
+            log.info("[correlationId={}] Calling payment-service for rechargeId {}", correlationId, saved.getId());
 
             CreatePaymentRequest paymentRequest = CreatePaymentRequest.builder()
                     .rechargeId(saved.getId())
                     .amount(plan.getPrice())
+                    .userEmail(userEmail)
+                    .operatorName(plan.getOperatorName())
+                    .planName(buildPlanName(plan))
+                    .mobileNumber(saved.getMobileNumber())
+                    .correlationId(correlationId)
                     .build();
 
             ApiResponse<PaymentResponse> paymentResponse =
@@ -90,7 +99,7 @@ public class RechargeServiceImpl implements RechargeService {
 
         } catch (Exception ex) {
 
-            log.error("Payment service failed for rechargeId {}", saved.getId(), ex);
+            log.error("[correlationId={}] Payment service failed for rechargeId {}", correlationId, saved.getId(), ex);
 
             saved.setStatus(RechargeStatus.FAILED);
         }
@@ -157,5 +166,12 @@ public class RechargeServiceImpl implements RechargeService {
             log.error("Invalid status value provided: {}. Enum constant not found.", status);
             throw new RuntimeException("Invalid status update requested: " + status);
         }
+    }
+
+    private String buildPlanName(PlanResponse plan) {
+        return String.format("%s Days | %.1f GB | %.0f Talktime",
+                plan.getValidity(),
+                plan.getData() == null ? 0.0 : plan.getData(),
+                plan.getTalktime() == null ? 0.0 : plan.getTalktime());
     }
 }

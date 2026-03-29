@@ -9,5 +9,11 @@ import lombok.*;
 public class PaymentSuccessEvent {
 
     private Long rechargeId;
+    private String userEmail;
+    private String operatorName;
+    private String planName;
+    private Double amount;
+    private String mobileNumber;
     private String status;
+    private String correlationId;
 }

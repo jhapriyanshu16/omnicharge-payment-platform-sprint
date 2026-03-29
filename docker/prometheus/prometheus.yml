@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "omnicharge"
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - discovery-server:8761
+          - config-server:8888
+          - api-gateway:9090
+          - user-service:8081
+          - operator-service:8082
+          - recharge-service:8083
+          - payment-service:8084
+          - notification-service:8085

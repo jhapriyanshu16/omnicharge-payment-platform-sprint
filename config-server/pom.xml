@@ -12,13 +12,13 @@
 <!--        <groupId>org.springframework.boot</groupId>-->
 <!--        <artifactId>spring-boot-starter-parent</artifactId>-->
 <!--        <version>3.2.5</version>-->
-<!--        <relativePath/>-->
+<!--        <relativePath/> &lt;!&ndash; lookup parent from repository &ndash;&gt;-->
 <!--    </parent>-->
 <!--    <groupId>com.omnicharge</groupId>-->
-    <artifactId>discovery-server</artifactId>
+    <artifactId>config-server</artifactId>
 <!--    <version>0.0.1-SNAPSHOT</version>-->
-    <name>discovery-server</name>
-    <description>discovery-server</description>
+    <name>config-server</name>
+    <description>config-server</description>
     <url/>
     <licenses>
         <license/>
@@ -55,7 +55,11 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
+            <artifactId>spring-cloud-config-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
         </dependency>
 
         <dependency>
@@ -63,7 +67,13 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
+
 <!--    <dependencyManagement>-->
 <!--        <dependencies>-->
 <!--            <dependency>-->

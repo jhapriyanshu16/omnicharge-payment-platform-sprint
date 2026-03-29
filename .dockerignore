@@ -1,0 +1,9 @@
+.git
+.idea
+**/.idea
+**/target
+**/.mvn
+**/HELP.md
+.env
+.env.local
+docker-compose.override.yml

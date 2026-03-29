@@ -1,0 +1,7 @@
+services:
+  prometheus:
+    depends_on:
+    volumes:
+      - ./docker/prometheus/prometheus-hybrid.yml:/etc/prometheus/prometheus.yml:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

@@ -1,0 +1,763 @@
+{
+  "info": {
+    "name": "OmniCharge API Collection",
+    "_postman_id": "0e601a58-e74e-487a-a255-4f911671f546",
+    "description": "Postman collection for OmniCharge business APIs.\n\nRecommended order:\n1. Auth -> Register User\n2. Auth -> Login User\n3. Operator Service -> Create Operator (requires adminToken when routed through gateway)\n4. Operator Service -> Create Plan (requires adminToken when routed through gateway)\n5. Recharge Service -> Create Recharge\n6. Payment Service requests as needed\n\nNotes:\n- `notification-service` currently exposes no public REST controller, so it has no request in this collection.\n- `Create Operator`, `Delete Operator`, `Create Plan`, and `Delete Plan` require `ROLE_ADMIN` when called through the API Gateway. Paste a valid admin JWT into `adminToken`, or point `operatorApiBaseUrl` directly at `http://localhost:8082` for local testing.\n- Default URLs target the API Gateway. Edit the collection variables if you want to hit services directly.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [],
+  "variable": [
+    {
+      "key": "gatewayBaseUrl",
+      "value": "http://localhost:9090"
+    },
+    {
+      "key": "userApiBaseUrl",
+      "value": "http://localhost:9090/user-service"
+    },
+    {
+      "key": "operatorApiBaseUrl",
+      "value": "http://localhost:9090/operator-service"
+    },
+    {
+      "key": "rechargeApiBaseUrl",
+      "value": "http://localhost:9090/recharge-service"
+    },
+    {
+      "key": "paymentApiBaseUrl",
+      "value": "http://localhost:9090/payment-service"
+    },
+    {
+      "key": "userServiceUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "operatorServiceUrl",
+      "value": "http://localhost:8082"
+    },
+    {
+      "key": "rechargeServiceUrl",
+      "value": "http://localhost:8083"
+    },
+    {
+      "key": "paymentServiceUrl",
+      "value": "http://localhost:8084"
+    },
+    {
+      "key": "userEmail",
+      "value": "omnicharge.user@example.com"
+    },
+    {
+      "key": "userPassword",
+      "value": "Password@123"
+    },
+    {
+      "key": "userName",
+      "value": "OmniCharge User"
+    },
+    {
+      "key": "userToken",
+      "value": ""
+    },
+    {
+      "key": "adminToken",
+      "value": "PASTE_ADMIN_JWT_HERE"
+    },
+    {
+      "key": "operatorId",
+      "value": "1"
+    },
+    {
+      "key": "planId",
+      "value": "1"
+    },
+    {
+      "key": "rechargeId",
+      "value": "1"
+    },
+    {
+      "key": "paymentId",
+      "value": "1"
+    },
+    {
+      "key": "mobileNumber",
+      "value": "9876543210"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Register user request succeeded\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "if (json && json.data && json.data.email) {",
+                  "    pm.collectionVariables.set(\"userEmail\", json.data.email);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{userName}}\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{userApiBaseUrl}}/auth/register",
+              "host": [
+                "{{userApiBaseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Creates a normal ROLE_USER account. Re-running this request with the same email will return the duplicate-email validation error from user-service."
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Login request succeeded\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "if (json && json.data && json.data.token) {",
+                  "    pm.collectionVariables.set(\"userToken\", json.data.token);",
+                  "}",
+                  "if (json && json.data && json.data.user && json.data.user.id) {",
+                  "    pm.collectionVariables.set(\"registeredUserId\", String(json.data.user.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{userApiBaseUrl}}/auth/login",
+              "host": [
+                "{{userApiBaseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Authenticates the registered user and stores the returned JWT in the `userToken` collection variable."
+          },
+          "response": []
+        },
+        {
+          "name": "Secure Test Endpoint",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{userApiBaseUrl}}/test/secure",
+              "host": [
+                "{{userApiBaseUrl}}"
+              ],
+              "path": [
+                "test",
+                "secure"
+              ]
+            },
+            "description": "Simple authenticated smoke test. Through the gateway, the JWT filter injects `X-User-Email` for the user-service controller."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Operator Service",
+      "item": [
+        {
+          "name": "Create Operator",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Create operator succeeded\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "if (json && json.data && json.data.id) {",
+                  "    pm.collectionVariables.set(\"operatorId\", String(json.data.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jio\",\n  \"circle\": \"Delhi\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{operatorApiBaseUrl}}/operators",
+              "host": [
+                "{{operatorApiBaseUrl}}"
+              ],
+              "path": [
+                "operators"
+              ]
+            },
+            "description": "Admin-only through the gateway. If you do not have an admin JWT, either paste one into `adminToken` or change `operatorApiBaseUrl` to `http://localhost:8082` and hit the service directly for local testing."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Operators",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{operatorApiBaseUrl}}/operators",
+              "host": [
+                "{{operatorApiBaseUrl}}"
+              ],
+              "path": [
+                "operators"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Operator By Id",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{operatorApiBaseUrl}}/operators/{{operatorId}}",
+              "host": [
+                "{{operatorApiBaseUrl}}"
+              ],
+              "path": [
+                "operators",
+                "{{operatorId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Operator",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{operatorApiBaseUrl}}/operators/{{operatorId}}",
+              "host": [
+                "{{operatorApiBaseUrl}}"
+              ],
+              "path": [
+                "operators",
+                "{{operatorId}}"
+              ]
+            },
+            "description": "Admin-only through the gateway."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Plan",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Create plan succeeded\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "if (json && json.data && json.data.id) {",
+                  "    pm.collectionVariables.set(\"planId\", String(json.data.id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"operatorId\": {{operatorId}},\n  \"price\": 299.0,\n  \"validity\": 28,\n  \"data\": 1.5,\n  \"talktime\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{operatorApiBaseUrl}}/plans",
+              "host": [
+                "{{operatorApiBaseUrl}}"
+              ],
+              "path": [
+                "plans"
+              ]
+            },
+            "description": "Admin-only through the gateway."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Plans By Operator",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{operatorApiBaseUrl}}/plans/operator/{{operatorId}}",
+              "host": [
+                "{{operatorApiBaseUrl}}"
+              ],
+              "path": [
+                "plans",
+                "operator",
+                "{{operatorId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Plan By Id",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{operatorApiBaseUrl}}/plans/{{planId}}",
+              "host": [
+                "{{operatorApiBaseUrl}}"
+              ],
+              "path": [
+                "plans",
+                "{{planId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Plan",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{operatorApiBaseUrl}}/plans/{{planId}}",
+              "host": [
+                "{{operatorApiBaseUrl}}"
+              ],
+              "path": [
+                "plans",
+                "{{planId}}"
+              ]
+            },
+            "description": "Admin-only through the gateway."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Recharge Service",
+      "item": [
+        {
+          "name": "Create Recharge",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Create recharge request completed\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "if (json && json.data && json.data.rechargeId) {",
+                  "    pm.collectionVariables.set(\"rechargeId\", String(json.data.rechargeId));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mobileNumber\": \"{{mobileNumber}}\",\n  \"operatorId\": {{operatorId}},\n  \"planId\": {{planId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{rechargeApiBaseUrl}}/recharges",
+              "host": [
+                "{{rechargeApiBaseUrl}}"
+              ],
+              "path": [
+                "recharges"
+              ]
+            },
+            "description": "Creates a recharge for the authenticated user. The API Gateway injects the `X-User-Email` header into recharge-service."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Recharge By Id",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{rechargeApiBaseUrl}}/recharges/{{rechargeId}}",
+              "host": [
+                "{{rechargeApiBaseUrl}}"
+              ],
+              "path": [
+                "recharges",
+                "{{rechargeId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Recharge Status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "url": {
+              "raw": "{{rechargeApiBaseUrl}}/recharges/{{rechargeId}}/status?status=SUCCESS",
+              "host": [
+                "{{rechargeApiBaseUrl}}"
+              ],
+              "path": [
+                "recharges",
+                "{{rechargeId}}",
+                "status"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "SUCCESS"
+                }
+              ]
+            },
+            "description": "Allowed values come from the recharge-service enum, for example `PENDING`, `SUCCESS`, or `FAILED`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payment Service",
+      "item": [
+        {
+          "name": "Create Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Create payment request completed\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var json = pm.response.json();",
+                  "if (json && json.data && json.data.transactionId) {",
+                  "    pm.collectionVariables.set(\"paymentId\", String(json.data.transactionId));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rechargeId\": {{rechargeId}},\n  \"amount\": 299.0,\n  \"userEmail\": \"{{userEmail}}\",\n  \"operatorName\": \"Jio\",\n  \"planName\": \"28 Days 1.5GB/Day\",\n  \"mobileNumber\": \"{{mobileNumber}}\",\n  \"correlationId\": \"corr-{{$timestamp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{paymentApiBaseUrl}}/payments",
+              "host": [
+                "{{paymentApiBaseUrl}}"
+              ],
+              "path": [
+                "payments"
+              ]
+            },
+            "description": "Direct payment creation request. In the normal recharge flow, recharge-service also calls payment-service internally."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payment By Id",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{paymentApiBaseUrl}}/payments/{{paymentId}}",
+              "host": [
+                "{{paymentApiBaseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "{{paymentId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{userToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "url": {
+              "raw": "{{paymentApiBaseUrl}}/payments/verify/{{paymentId}}",
+              "host": [
+                "{{paymentApiBaseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "verify",
+                "{{paymentId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

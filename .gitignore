@@ -1,0 +1,7 @@
+.idea/
+.env
+.env.local
+**/target/
+target/
+*.jar
+.DS_Store

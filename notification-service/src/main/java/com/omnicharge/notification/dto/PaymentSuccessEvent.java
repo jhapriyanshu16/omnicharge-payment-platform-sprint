@@ -1,11 +1,14 @@
-package com.omnicharge.rechargeservice.messaging.event;
+package com.omnicharge.notification.dto;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class PaymentSuccessEvent {
 
     private Long rechargeId;

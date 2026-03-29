@@ -23,6 +23,16 @@ public class Transaction {
 
     private Double amount;
 
+    private String userEmail;
+
+    private String operatorName;
+
+    private String planName;
+
+    private String mobileNumber;
+
+    private String correlationId;
+
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
 

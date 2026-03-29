@@ -13,10 +13,20 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
+
+    private static final List<String> PUBLIC_PATH_SEGMENTS = List.of(
+            "/auth/",
+            "/swagger-ui",
+            "/swagger-ui.html",
+            "/v3/api-docs",
+            "/webjars/"
+    );
 
     private final JwtUtil jwtUtil;
 
@@ -26,8 +36,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         String path = exchange.getRequest().getURI().getPath();
         log.info("Incoming request path: {}", path);
-        // Allow public auth routes
-        if (path.contains("/auth/")) {
+
+        if (HttpMethod.OPTIONS.equals(exchange.getRequest().getMethod()) || isPublicPath(path)) {
             return chain.filter(exchange);
         }
 
@@ -87,5 +97,9 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     @Override
     public int getOrder() {
         return -1;
+    }
+
+    private boolean isPublicPath(String path) {
+        return PUBLIC_PATH_SEGMENTS.stream().anyMatch(path::contains);
     }
 }

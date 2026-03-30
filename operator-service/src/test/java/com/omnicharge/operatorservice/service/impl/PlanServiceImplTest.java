@@ -145,4 +145,113 @@ class PlanServiceImplTest {
         assertThrows(PlanNotFoundException.class, () -> planService.delete(99L));
         verify(planRepository, never()).delete(any(Plan.class));
     }
+
+    @Test
+    void shouldReturnEmptyListWhenNoPlansByOperator() {
+        when(planRepository.findByOperatorId(10L)).thenReturn(List.of());
+
+        List<PlanResponse> result = planService.getPlansByOperator(10L);
+
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    void shouldMapPlanResponseWithOperatorDetails() {
+        Operator operator = Operator.builder().id(15L).name("Airtel").build();
+        Plan plan = Plan.builder()
+                .id(5L)
+                .price(499.0)
+                .validity(30)
+                .data(5.0)
+                .talktime(300.0)
+                .operator(operator)
+                .build();
+
+        when(planRepository.findById(5L)).thenReturn(Optional.of(plan));
+
+        PlanResponse result = planService.getById(5L);
+
+        assertEquals(5L, result.getId());
+        assertEquals(499.0, result.getPrice());
+        assertEquals(30, result.getValidity());
+        assertEquals(5.0, result.getData());
+        assertEquals(300.0, result.getTalktime());
+        assertEquals(15L, result.getOperatorId());
+        assertEquals("Airtel", result.getOperatorName());
+    }
+
+    @Test
+    void shouldThrowCorrectExceptionMessageWhenOperatorNotFound() {
+        CreatePlanRequest request = new CreatePlanRequest();
+        request.setOperatorId(999L);
+
+        when(operatorRepository.findById(999L)).thenReturn(Optional.empty());
+
+        OperatorNotFoundException exception = assertThrows(
+                OperatorNotFoundException.class,
+                () -> planService.create(request)
+        );
+
+        assertEquals("Operator not found", exception.getMessage());
+    }
+
+    @Test
+    void shouldThrowCorrectExceptionMessageWhenPlanAlreadyExists() {
+        CreatePlanRequest request = new CreatePlanRequest();
+        request.setOperatorId(10L);
+        request.setPrice(299.0);
+
+        Operator operator = Operator.builder().id(10L).name("Jio").build();
+
+        when(operatorRepository.findById(10L)).thenReturn(Optional.of(operator));
+        when(planRepository.existsByOperatorIdAndPrice(10L, 299.0)).thenReturn(true);
+
+        PlanAlreadyExistsException exception = assertThrows(
+                PlanAlreadyExistsException.class,
+                () -> planService.create(request)
+        );
+
+        assertEquals("Plan already exists with same price", exception.getMessage());
+    }
+
+    @Test
+    void shouldThrowCorrectExceptionMessageWhenPlanNotFound() {
+        when(planRepository.findById(100L)).thenReturn(Optional.empty());
+
+        PlanNotFoundException exception = assertThrows(
+                PlanNotFoundException.class,
+                () -> planService.getById(100L)
+        );
+
+        assertEquals("Plan not found with id: 100", exception.getMessage());
+    }
+
+    @Test
+    void shouldCreatePlanWithNullDataAndTalktime() {
+        CreatePlanRequest request = new CreatePlanRequest();
+        request.setOperatorId(10L);
+        request.setPrice(99.0);
+        request.setValidity(7);
+        request.setData(null);
+        request.setTalktime(null);
+
+        Operator operator = Operator.builder().id(10L).name("Jio").build();
+        Plan savedPlan = Plan.builder()
+                .id(1L)
+                .price(99.0)
+                .validity(7)
+                .data(null)
+                .talktime(null)
+                .operator(operator)
+                .build();
+
+        when(operatorRepository.findById(10L)).thenReturn(Optional.of(operator));
+        when(planRepository.existsByOperatorIdAndPrice(10L, 99.0)).thenReturn(false);
+        when(planRepository.save(any(Plan.class))).thenReturn(savedPlan);
+
+        PlanResponse result = planService.create(request);
+
+        assertEquals(99.0, result.getPrice());
+        assertEquals(7, result.getValidity());
+    }
 }

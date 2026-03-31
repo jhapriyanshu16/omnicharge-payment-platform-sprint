@@ -26,7 +26,8 @@ import java.util.UUID;
 @Transactional
 @RequiredArgsConstructor
 @Slf4j
-public class RechargeServiceImpl implements RechargeService {
+public class
+RechargeServiceImpl implements RechargeService {
 
     private final RechargeRepository repository;
     private final OperatorClient operatorClient;
